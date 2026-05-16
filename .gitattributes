@@ -1,0 +1,10 @@
+# PowerShell hook must keep its UTF-8 BOM and CRLF (Windows PowerShell 5.1
+# misreads a BOM-less file as ANSI and fails to parse Cyrillic). Treat as
+# binary so git never normalizes line endings or strips the BOM.
+*.ps1 -text
+
+# Shell hook: always LF.
+*.sh text eol=lf
+
+# Markdown: normalize to LF in the repo.
+*.md text eol=lf
