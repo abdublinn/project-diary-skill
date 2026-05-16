@@ -30,9 +30,14 @@
 
 ## Структура `ДНЕВНИК.md`
 
-- **📍 Снимок** — живое состояние, перезаписывается (не растёт).
+- **📍 Снимок** — живое состояние, перезаписывается (не растёт). Несёт штамп
+  свежести `Обновлено: <дата>[ · git sha]` и первой строкой — **«Следующий шаг
+  (сразу делать)»**: одно копируемое действие для мгновенной передачи смены.
 - **🧭 Ориентир** — что за проект, точки входа, как проверить (меняется редко).
-- **📒 Журнал** — append-only, новое сверху, одна запись на веху, решения с «почему».
+- **📒 Журнал** — append-only, новое сверху, одна запись на веху, решения с
+  «почему». Детерминированный потолок (≈12 вех / ≈150 строк) — переполнение
+  сворачивается в `### Архив` в том же файле, чтобы анти-мусор был принудительным,
+  а не «на совесть».
 
 Формат адаптивный: обычный репозиторий → плоский Markdown; проект внутри
 Obsidian-vault → Obsidian Flavored Markdown (frontmatter + callouts).
@@ -96,9 +101,39 @@ project-diary.
 правку.
 ```
 
-> Почему два уровня: чтение можно сделать детерминированным (хук), а качественную
-> запись — нет, это суждение модели. Хук гарантирует чтение, правило настойчиво
-> ведёт запись и страхует, если хук не отработал.
+**4. Хук записи (PreCompact, рекомендуется).** Скопируй
+`hooks/project-diary-precompact.ps1` (или `.sh`) в `~/.claude/hooks/` и пропиши
+в `~/.claude/settings.json` событием `hooks.PreCompact`:
+
+```json
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\<USER>\\.claude\\hooks\\project-diary-precompact.ps1\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+macOS/Linux — `{ "type": "command", "command": "$HOME/.claude/hooks/project-diary-precompact.sh", "timeout": 10 }`.
+
+Срабатывает ровно перед сжатием контекста: если есть `ДНЕВНИК.md` — впечатывает
+директиву «зафиксируй веху сейчас, до сжатия»; если дневника нет, но это проект —
+«заведи»; иначе молчит. `SessionEnd` для записи намеренно не используется — после
+него у модели нет хода.
+
+> Почему так: чтение можно сделать полностью детерминированным (SessionStart-хук).
+> Запись — нет, это суждение модели; но PreCompact-хук бьёт директивой ровно в
+> момент риска потери контекста, а правило в CLAUDE.md ведёт обычную запись и
+> страхует, если хук не отработал.
 
 ## Установка — Codex
 
@@ -122,8 +157,10 @@ project-diary-skill/
 ├── README.md                             этот файл
 ├── LICENSE                               MIT
 └── hooks/
-    ├── project-diary-session-start.ps1   SessionStart-хук, Windows (UTF-8 BOM)
-    └── project-diary-session-start.sh    SessionStart-хук, macOS/Linux
+    ├── project-diary-session-start.ps1   SessionStart (чтение), Windows (UTF-8 BOM)
+    ├── project-diary-session-start.sh    SessionStart (чтение), macOS/Linux
+    ├── project-diary-precompact.ps1      PreCompact (запись-толчок), Windows (UTF-8 BOM)
+    └── project-diary-precompact.sh       PreCompact (запись-толчок), macOS/Linux
 ```
 
 ## Лицензия
