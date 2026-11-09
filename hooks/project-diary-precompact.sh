@@ -19,11 +19,15 @@ done
 
 command -v python3 >/dev/null 2>&1 || exit 0
 
-python3 - "$diary" "$marker" <<'PY'
-import json, re, sys
+python3 - "$diary" "$marker" "$(cd "$(dirname "$0")" && pwd)" <<'PY'
+import json, os, re, sys
 sys.stdout.reconfigure(encoding="utf-8")
 LIMIT_CHARS, LIMIT_ENTRIES = 24000, 12
 diary, marker = sys.argv[1], sys.argv[2]
+try:  # карточка правил — один файл на оба хука, рядом со скриптом
+    card = open(os.path.join(sys.argv[3], "project-diary-rules-card.txt"), encoding="utf-8-sig").read().strip()
+except (OSError, IndexError):
+    card = "Правила записи — в скиле project-diary (файл карточки не найден)."
 if diary:
     try:
         t = open(diary, encoding="utf-8-sig").read()
@@ -32,9 +36,8 @@ if diary:
     chars = len(t)
     entries = len(re.findall(r"(?m)^###\s+\d{4}-\d{2}-\d{2}", t))
     msg = ("[project-diary] Контекст сейчас будет сжат — наработанное может потеряться.\n"
-           f"Если в этой сессии была веха / нетривиальное решение / блокер и их ещё нет в ДНЕВНИК.md ({diary}) — ОБНОВИ его СЕЙЧАС, до сжатия, по правилам скила project-diary: "
-           "«Снимок» перезаписать (штамп «Обновлено: дата[ · git sha]» + «Следующий шаг (сразу делать)» одной строкой); "
-           "одну запись в «Свежий журнал» сверху, решения — с «почему». Вехи не было — ничего не пиши, дневник не мусорим.")
+           f"Определи режим для ДНЕВНИК.md ({diary}) по карточке ниже и, если это режим 2 или 3, обнови дневник СЕЙЧАС, до сжатия. "
+           "Режим 1 (состояние не изменилось) — ничего не пиши.\n" + card)
     if chars > LIMIT_CHARS or entries > LIMIT_ENTRIES:
         msg += (f"\nДневник за лимитами ({chars} знаков, полных записей {entries}; лимиты {LIMIT_CHARS} / {LIMIT_ENTRIES}) — "
                 "после записи вехи выполни в этой сессии «Ужатие» по скилу: вырезанное — дословно в ДНЕВНИК-архив.md, важное — строками в «Ключевые вехи».")
